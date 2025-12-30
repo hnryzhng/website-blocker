@@ -5,7 +5,7 @@ Chrome extension
 
 Productivity tool to block websites that distract you from your work. 
 
-Does NOT read or send your data to a third-party server -- you can look at the source code yourself to verify if you can understand it, or get someone who does.
+Does NOT read or send your data to a third-party server -- if you can understand it, look at the source code to verify, or get someone who can.
 
 No frills, not fancy, simple and lightweight.
 
