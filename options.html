@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HZ Site Blocker - Blocked Websites</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 16px; max-width: 720px; }
+      textarea { width: 100%; height: 240px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+      button { padding: 8px 12px; cursor: pointer; }
+      .hint { color: #555; font-size: 13px; margin-top: 8px; }
+      .status { margin-left: 8px; font-size: 13px; color: #0a7; }
+    </style>
+  </head>
+  <body>
+    <h1>Blocked sites</h1>
+    <p>Enter one domain per line. Examples: <code>twitter.com</code>, <code>youtube.com</code>, <code>news.ycombinator.com</code></p>
+
+    <textarea id="list" placeholder="example.com&#10;youtube.com"></textarea>
+
+    <div class="row">
+      <button id="save">Save</button>
+      <span class="status" id="status"></span>
+    </div>
+
+    <div class="hint">
+      Tip: You can paste full URLs too (like <code>https://www.youtube.com/watch?v=...</code>)—they’ll be normalized to the domain.
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>
