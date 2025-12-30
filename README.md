@@ -7,7 +7,7 @@ Productivity tool to block websites that distract you from your work.
 
 Does NOT read or send your data to a third-party server -- you can look at the source code yourself to verify if you can understand it, or get someone who does.
 
-No frills, simple and lightweight.
+No frills, not fancy, simple and lightweight.
 
 
 Enjoy~
