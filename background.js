@@ -1,12 +1,12 @@
 const STORAGE_KEY = "blockedSites";
 
-let blockedDomains = [];
+let blockedDomains = null;
+let loadPromise = null;
 
-// Normalize a site URL into a valid domain
+// Normalize a site / URL into a domain:
 //  - trim
 //  - strip protocol, path, port
 //  - remove leading www.
-
 function normalizeSite(input) {
   let s = (input || "").trim();
   if (!s) return "";
@@ -24,11 +24,26 @@ async function loadBlocklistFromStorage() {
   const raw = Array.isArray(data[STORAGE_KEY]) ? data[STORAGE_KEY] : [];
   const normalized = raw.map(normalizeSite).filter(Boolean);
   blockedDomains = [...new Set(normalized)];
-  // For debugging: uncomment next line and check chrome://extensions -> Service worker
-  // console.log("Blocked domains:", blockedDomains);
+  // console.log("Loaded blocked domains:", blockedDomains);
+}
+
+// Ensure blocklist is loaded whenever we need it
+async function ensureBlocklistLoaded() {
+  // Already loaded in this worker instance
+  if (blockedDomains !== null) return;
+
+  // One in-flight load only
+  if (!loadPromise) {
+    loadPromise = loadBlocklistFromStorage().finally(() => {
+      loadPromise = null;
+    });
+  }
+  await loadPromise;
 }
 
 function isBlockedUrl(url) {
+  if (!blockedDomains || blockedDomains.length === 0) return false;
+
   let hostname;
   try {
     hostname = new URL(url).hostname.toLowerCase();
@@ -36,10 +51,10 @@ function isBlockedUrl(url) {
     return false;
   }
 
-  // remove leading www.
+  // Remove leading www.
   hostname = hostname.replace(/^www\./i, "");
 
-  // block if hostname is domain or subdomain of a blocked domain
+  // Block if hostname is domain or subdomain of a blocked domain
   return blockedDomains.some(domain => {
     return (
       hostname === domain ||
@@ -48,13 +63,16 @@ function isBlockedUrl(url) {
   });
 }
 
-// when navigation starts, if URL is blocked, redirect the tab
+// When navigation starts, if URL is blocked, redirect the tab
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-  // only care about top-level frame (frameId === 0)
+  // Only care about top-level frame (frameId === 0)
   if (details.frameId !== 0) return;
 
   const url = details.url;
   if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+
+  // Make sure we have the latest blocklist in *this* worker instance, so the blockedDomains in localStorage isn't re-initialized to empty array upon every service worker restart
+  await ensureBlocklistLoaded();
 
   if (isBlockedUrl(url)) {
     const blockedPageUrl =
@@ -64,18 +82,22 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     try {
       await chrome.tabs.update(details.tabId, { url: blockedPageUrl });
     } catch (e) {
-      // tab might be gone; ignore
+      // Tab might be gone; ignore
     }
   }
 });
 
-// initial load of blocklist
-chrome.runtime.onInstalled.addListener(loadBlocklistFromStorage);
-chrome.runtime.onStartup.addListener(loadBlocklistFromStorage);
+// Optional: initial load on install/startup
+chrome.runtime.onInstalled.addListener(() => {
+  blockedDomains = null; // force reload next time it's needed
+});
+chrome.runtime.onStartup.addListener(() => {
+  blockedDomains = null; // force reload next time it's needed
+});
 
-// update in memory when options change
+// When options change, invalidate the cached list
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "sync" && changes[STORAGE_KEY]) {
-    loadBlocklistFromStorage();
+    blockedDomains = null; // will be reloaded on next navigation
   }
 });
